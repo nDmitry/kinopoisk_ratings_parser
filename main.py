@@ -1,6 +1,7 @@
 from datetime import datetime
 import csv
 from http.cookies import SimpleCookie
+import re
 import requests
 from bs4 import BeautifulSoup
 
@@ -61,7 +62,7 @@ def get_page_content(page_num, cookies):
     )
 
     soup = BeautifulSoup(response.text, "lxml")  # html.parser
-    items = soup.find_all("div", class_="item")
+    items = soup.select(".profileFilmsList .item")
     return items
 
 
@@ -76,13 +77,29 @@ def translate_type(type_):
     return type_eng
 
 
+def get_rating_from_script(item):
+    """Extract rating from JavaScript code in the item."""
+    # Find all script tags in the item
+    scripts = item.find_all('script')
+
+    for script in scripts:
+        if script.string and 'ur_data.push' in script.string:
+            # Use regex to find rating value
+            match = re.search(r"rating:\s*'(\d+)'", script.string)
+            if match:
+                return match.group(1)
+
+    return None
+
+
 def write_to_csv(items, writer):
     """Write items to a CSV file."""
     for item in items:
+        print(item)
         num = item.find("div", class_="num").text
         name_eng = item.find("div", class_="nameEng").text
         name_rus = item.find("div", class_="nameRus").text.split("(")[0].strip()
-        if name_eng == " ":
+        if name_eng == " ":
             name_eng = ts.translate_text(name_rus)
         year_and_type = item.find("div", class_="nameRus").text.split("(")[1][:-1]
         year = get_year(year_and_type).strip()
@@ -91,7 +108,13 @@ def write_to_csv(items, writer):
         type_ = detect_shortfilm(type_, duration)
         type_eng = translate_type(type_)
         date = format_date(item.find("div", class_="date").text)
-        vote_10 = item.find("div", class_="vote").text
+
+        # Extract rating from JavaScript code
+        vote_10 = get_rating_from_script(item)
+        if vote_10 is None:
+            print(f"Warning: Could not find rating for item {num}")
+            continue
+
         vote_lb = float(vote_10) / 2
 
         writer.writerow(
