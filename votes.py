@@ -58,7 +58,7 @@ def get_page_content(page_num, cookies):
     response = requests.get(
         f"https://www.kinopoisk.ru/user/{numer_user}/votes/list/vs/vote/page/{page_num}/#list",
         cookies=cookies,
-        timeout= 30,
+        timeout=30,
     )
 
     soup = BeautifulSoup(response.text, "lxml")  # html.parser
@@ -80,10 +80,10 @@ def translate_type(type_):
 def get_rating_from_script(item):
     """Extract rating from JavaScript code in the item."""
     # Find all script tags in the item
-    scripts = item.find_all('script')
+    scripts = item.find_all("script")
 
     for script in scripts:
-        if script.string and 'ur_data.push' in script.string:
+        if script.string and "ur_data.push" in script.string:
             # Use regex to find rating value
             match = re.search(r"rating:\s*'(\d+)'", script.string)
             if match:
@@ -139,7 +139,7 @@ def main():
         raw_cookies
     )  # withour cookies don't work multiple responses
     page_num = 1
-    with open("data.csv", "a", newline="", encoding="utf-8") as csvfile:
+    with open("votes.csv", "a", newline="", encoding="utf-8") as csvfile:
         fieldnames = [
             "Num",
             "Date",
